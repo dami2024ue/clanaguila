@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clan Águila RPG</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            text-align: center; 
+            background-color: #1e1e2e; 
+            color: white;
+        }
+        .container { 
+            max-width: 500px; 
+            margin: auto; 
+            background: #C51D34;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+        }
+        .hidden { display: none; }
+        .skills-list button, button { 
+            margin: 5px; 
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            background-color: #87000b;
+            color: white;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .skills-list button:hover, button:hover {
+            background-color: #bd93f9;
+        }
+        .progress-container {
+            width: 100%;
+            background-color: #44475a;
+            border-radius: 5px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+        .progress-bar {
+            height: 20px;
+            width: 0%;
+            background-color: #50fa7b;
+            transition: width 0.5s ease-in-out;
+        }
+        .skill-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px 0;
+        }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Clan Águila RPG</h1>
+      <button onclick="resetGame()">Reiniciar Juego</button>
+      <!-- Primera pantalla: Creación de personaje -->
+      <div id="characterCreation">
+        <h2>Elegí una habilidad principal</h2>
+        <input id="characterName" placeholder="Nombre de tu personaje" type="text">
+        <div class="skills-list" id="skillsList"></div>
+        <p id="skillDescription"></p>
+        <button onclick="createCharacter()">Crear Personaje</button> </div>
+      <!-- Segunda pantalla: Juego y asignación de puntos -->
+      <div id="gameplay" class="hidden">
+        <h2>Personaje Creado: <span id="characterDisplayName"></span></h2>
+        <p id="level">Nivel: 0 | XP: 0/100</p>
+        <div class="progress-container">
+          <div id="xpProgress" class="progress-bar"></div>
+        </div>
+        <h3>Habilidades</h3>
+        <div id="skillsDisplay"></div>
+        <p>Puntos disponibles para asignar: <span id="pointsToAssign">0</span></p>
+        <h3>Ganar XP</h3>
+        <input id="xpPassword" placeholder="Ingrese clave" type="password"> <input
+
+          id="xpInput" placeholder="Ingrese XP" type="number"> <button onclick="gainXP()">Agregar
+          XP</button>
+        <p>Puntos disponibles para asignar: <span id="pointsToAssign">0</span></p>
+      </div>
+    </div>
+    <script>
+        const skills = {
+			"Liderazgo 🏆": "Capacidad para guiar y motivar a un equipo hacia un objetivo en común. Un buen líder no solo da órdenes, sino que inspira, escucha y toma decisiones estratégicas.",
+            "Trabajo en equipo 🤝": "Colaboración efectiva con otros para lograr una meta común. Implica comunicación, flexibilidad y compromiso con el grupo.",
+            "Comunicación 🗣️": "Expresión clara y efectiva de ideas tanto de forma oral como escrita. Es clave para transmitir conocimientos y coordinar esfuerzos.",
+            "Resolución de problemas 🧩": "Habilidad para analizar una situación complicada y encontrar soluciones creativas y viables. Resolver problemas es clave para la innovación.",
+            "Creatividad 🎨": "Capacidad para pensar fuera de lo convencional y generar nuevas ideas. Es esencial para la innovación y la solución de problemas complejos.",
+            "Adaptabilidad 🔄": "Flexibilidad para ajustarse a cambios e imprevistos. En un entorno dinámico, la capacidad de aprender y adaptarse rápidamente es fundamental.",
+            "Empatía ❤️": "Comprender y compartir los sentimientos de los demás. Permite fortalecer relaciones, generar confianza y fomentar un ambiente de trabajo positivo.",
+            "Pensamiento crítico 🤯": "Evaluación objetiva de la información para tomar decisiones fundamentadas. Esta habilidad es clave para el análisis de datos y la interpretación de resultados.",
+            "Gestión del tiempo ⏳": "Capacidad para organizar y priorizar tareas de manera eficiente. Un personaje con buena gestión del tiempo puede avanzar en múltiples proyectos sin comprometer la calidad.",
+            "Negociación ⚖️": "Habilidad para llegar a acuerdos beneficiosos para todas las partes. Se aplica en la obtención de recursos, colaboración con otros personajes y comunicación con terceros.",
+            "Inteligencia emocional 🧠": "Capacidad de reconocer, comprender y gestionar las emociones propias y ajenas. Un personaje con alta inteligencia emocional puede manejar el estrés y la presión de forma efectiva.",
+            "Toma de decisiones 🏁": "Evaluar opciones y elegir la mejor alternativa. En la vida, tomar decisiones acertadas puede ser la diferencia entre el éxito y el fracaso."
+        };
+
+        let selectedSkill = null;
+        let character = JSON.parse(localStorage.getItem("character")) || null;
+        let xp = parseInt(localStorage.getItem("xp")) || 0;
+        let level = parseInt(localStorage.getItem("level")) || 0;
+        let pointsToAssign = parseInt(localStorage.getItem("pointsToAssign")) || 0;
+        let characterName = localStorage.getItem("characterName") || "";
+
+        function displaySkills() {
+            const skillsList = document.getElementById("skillsList");
+            Object.keys(skills).forEach(skill => {
+                let button = document.createElement("button");
+                button.textContent = skill;
+                button.onclick = () => {
+                    selectedSkill = skill;
+                    document.getElementById("skillDescription").textContent = skills[skill];
+                    document.querySelectorAll(".skills-list button").forEach(btn => btn.style.background = "");
+                    button.style.background = "#50fa7b";
+                };
+                skillsList.appendChild(button);
+            });
+        }
+		
+        function createCharacter() {
+            characterName = document.getElementById("characterName").value.trim();
+            if (!characterName) return alert("Ingresa un nombre para el personaje");
+            if (!selectedSkill) return alert("Selecciona una habilidad principal");
+            
+            character = {};
+            Object.keys(skills).forEach(skill => character[skill] = skill === selectedSkill ? 7 : 3);
+            saveGame();
+            document.getElementById("characterCreation").classList.add("hidden");
+            document.getElementById("gameplay").classList.remove("hidden");
+            document.getElementById("characterDisplayName").textContent = characterName;
+            updateDisplay();
+        }
+
+function gainXP() {
+    let amount = parseInt(document.getElementById("xpInput").value) || 0;
+    let password = document.getElementById("xpPassword").value;
+
+    if (password !== "Dirisrover") {
+        alert("Clave incorrecta. No se puede sumar experiencia.");
+        return;
+    }
+    
+    xp += amount;
+    while (xp >= (level + 1) * 100) {
+        level++;
+        pointsToAssign++;
+    }
+
+    saveGame();
+    updateDisplay();
+}
+
+        function upgradeSkill(skill) {
+            if (pointsToAssign > 0 && character[skill] < 10) {
+                character[skill]++;
+                pointsToAssign--;
+                saveGame();
+                updateDisplay();
+            }
+        }
+
+        function updateDisplay() {
+            document.getElementById("level").textContent = `Nivel: ${level} | XP: ${xp}/${(level + 1) * 100}`;
+            document.getElementById("xpProgress").style.width = `${(xp % 100) / 100 * 100}%`;
+            document.getElementById("pointsToAssign").textContent = pointsToAssign;
+            document.getElementById("characterDisplayName").textContent = characterName;
+
+            let skillsDisplay = document.getElementById("skillsDisplay");
+            skillsDisplay.innerHTML = "";
+
+            Object.entries(character).forEach(([skill, points]) => {
+                let skillDiv = document.createElement("div");
+                skillDiv.classList.add("skill-container");
+                skillDiv.innerHTML = `<span>${skill}: ${points}</span>`;
+                
+                let btn = document.createElement("button");
+                btn.textContent = "+";
+                btn.onclick = () => upgradeSkill(skill);
+                btn.disabled = points >= 10 || pointsToAssign === 0;
+                
+                skillDiv.appendChild(btn);
+                skillsDisplay.appendChild(skillDiv);
+            });
+        }
+
+        function resetGame() {
+            localStorage.clear();
+            location.reload();
+        }
+
+        function saveGame() {
+            localStorage.setItem("character", JSON.stringify(character));
+            localStorage.setItem("xp", xp);
+            localStorage.setItem("level", level);
+            localStorage.setItem("pointsToAssign", pointsToAssign);
+            localStorage.setItem("characterName", characterName);
+        }
+
+        function loadGame() {
+            if (character) {
+                document.getElementById("characterCreation").classList.add("hidden");
+                document.getElementById("gameplay").classList.remove("hidden");
+                updateDisplay();
+            }
+        }
+
+        displaySkills();
+        loadGame();
+    </script>
+  </body>
+</html>
